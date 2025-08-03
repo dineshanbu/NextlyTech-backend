@@ -11,7 +11,7 @@ const auth = require('./auth.route')
 const aiReview = require('./AI_Generator/aiReview.route')
 const media = require('./media.routes')
 const home = require('./home.route')
-
+const comparsion = require('./comparsion.route')
 
 router.use("/user", user);
 router.use("/techNews", techNews);
@@ -24,5 +24,6 @@ router.use("/auth", auth);
 router.use("/aiReview", aiReview);
 router.use("/media", media);
 router.use("/home", home);
+router.use("/comparison", comparsion);
 
 module.exports = router

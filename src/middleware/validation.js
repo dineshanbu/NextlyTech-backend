@@ -494,6 +494,61 @@ const validateCreateAdmin = [
   body('role').isIn(['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'REVIEWER']),
 ];
 
+const validateComparison = [
+  body('title')
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ max: 200 })
+    .withMessage('Title cannot exceed 200 characters'),
+  
+  body('content')
+    .notEmpty()
+    .withMessage('Content is required')
+    .isLength({ min: 100 })
+    .withMessage('Content must be at least 100 characters'),
+  
+  body('excerpt')
+    .notEmpty()
+    .withMessage('Excerpt is required')
+    .isLength({ max: 300 })
+    .withMessage('Excerpt cannot exceed 300 characters'),
+  
+  body('category')
+    .notEmpty()
+    .withMessage('Category is required')
+    .isMongoId()
+    .withMessage('Invalid category ID'),
+  
+  body('subcategory')
+    .notEmpty()
+    .withMessage('Subcategory is required')
+    .isMongoId()
+    .withMessage('Invalid subcategory ID'),
+  
+  
+  body('products')
+    .isArray({ min: 2, max: 5 })
+    .withMessage('Must have between 2 and 5 products to compare'),
+  
+  body('products.*.productId')
+    .isMongoId()
+    .withMessage('Invalid product ID'),
+  
+  body('winner.productId')
+    .isMongoId()
+    .withMessage('Invalid winner product ID'),
+  
+  body('winner.reason')
+    .notEmpty()
+    .withMessage('Winner reason is required'),
+  
+  body('conclusion')
+    .notEmpty()
+    .withMessage('Conclusion is required')
+    .isLength({ min: 100, max: 1000 })
+    .withMessage('Conclusion must be between 100 and 1000 characters'),
+];
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -514,5 +569,6 @@ module.exports = {
   validateUpdateTechNews,
   validateCreateStaticPage,
   validateUpdateStaticPage,
-  validateCreateAdmin
+  validateCreateAdmin,
+  validateComparison
 };
