@@ -5,17 +5,17 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
   // Get all tech news
   exports.getAllTechNews = async (req, res) =>{
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      const page = parseInt(req.body.page) || 1;
+      const limit = parseInt(req.body.limit) || 10;
       const skip = (page - 1) * limit;
       
-      const status = req.query.status || 'published';
-      const category = req.query.category;
-      const isFeatured = req.query.isFeatured;
-      const isBreaking = req.query.isBreaking;
-      const search = req.query.search || '';
-      const sortBy = req.query.sortBy || 'publishedAt';
-      const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+      const status = req.body.status || 'all';
+      const category = req.body.category;
+      const isFeatured = req.body.isFeatured;
+      const isBreaking = req.body.isBreaking;
+      const search = req.body.search || '';
+      const sortBy = req.body.sortBy || 'publishedAt';
+      const sortOrder = req.body.sortOrder === 'asc' ? 1 : -1;
 
       // Build query
       let query = {};
@@ -28,13 +28,6 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
         query.category = category;
       }
       
-      if (isFeatured !== undefined) {
-        query.isFeatured = isFeatured === 'true';
-      }
-      
-      if (isBreaking !== undefined) {
-        query.isBreaking = isBreaking === 'true';
-      }
       
       if (search) {
         query.$or = [
@@ -48,29 +41,44 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
       let sort = {};
       sort[sortBy] = sortOrder;
 
-      const techNews = await TechNews.find(query)
-        .populate('author', 'username firstName lastName avatar')
-        .populate('updatedBy', 'username firstName lastName')
-        .populate('commentsCount')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit);
-
+      // Count totals in parallel
+        const [totalAll, totalPublished, totalDraft, techNews] = await Promise.all([
+            TechNews.countDocuments(),
+            TechNews.countDocuments({ status: 'published' }),
+            TechNews.countDocuments({ status: 'draft' }),
+            TechNews.find(query)
+              .populate('category', 'name slug group')
+              .populate('subcategory', 'name slug')
+              .populate('author', 'username firstName lastName avatar')
+              .populate('commentsCount')
+              .populate('updatedBy', 'username firstName lastName')
+              .sort(sort)
+              .skip(skip)
+              .limit(limit)
+        ]);
       const total = await TechNews.countDocuments(query);
 
       res.json({
         success: true,
+        statuscode: 200,
         data: {
+          counts: {
+            totalAll,
+            totalPublished,
+            totalDraft
+          },
           techNews,
           pagination: {
             currentPage: page,
             totalPages: Math.ceil(total / limit),
-            totalNews: total,
+            totalReviews: total,
             hasNext: page < Math.ceil(total / limit),
             hasPrev: page > 1
           }
         }
       });
+      
+      
     } catch (error) {
       console.error('Get tech news error:', error);
       res.status(500).json({
@@ -83,8 +91,8 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
   // Get tech news by ID or slug
   exports.getTechNewsById = async (req, res) => {
     try {
-      const { id } = req.params;
-      const incrementView = req.query.incrementView === 'true';
+      const { id } = req.body;
+      const incrementView = req.body.incrementView === 'true';
       
       let techNews;
 
@@ -109,6 +117,8 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
       }
 
       await techNews.populate([
+           { path: 'category', select: 'name slug' },
+        { path: 'subcategory', select: 'name slug' },
         { path: 'author', select: 'username firstName lastName avatar bio' },
         { path: 'updatedBy', select: 'username firstName lastName' },
         { path: 'commentsCount' }
@@ -144,6 +154,7 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
         content,
         excerpt,
         category,
+        subcategory,
         tags,
         featuredImage,
         images,
@@ -162,11 +173,13 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
         content,
         excerpt,
         category,
+        subcategory,
         tags,
         featuredImage,
         images,
         author: req.user._id,
         status: status || 'draft',
+        publishedAt: status === 'published' ? new Date() : null,
         isFeatured: isFeatured || false,
         isBreaking: isBreaking || false,
         priority: priority || 0,
@@ -207,7 +220,7 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
         });
       }
 
-      const { id } = req.params;
+      const { id } = req.body;
       const updateData = req.body;
 
       const techNews = await TechNews.findById(id);
@@ -219,16 +232,16 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
       }
 
       // Check if user can edit this tech news
-      if (techNews.author.toString() !== req.user.userId && !['ADMIN', 'SUPER_ADMIN', 'EDITOR'].includes(req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Not authorized to edit this tech news'
-        });
-      }
+      // if (techNews.author.toString() !== req.user.userId && !['ADMIN', 'SUPER_ADMIN', 'EDITOR'].includes(req.user.role)) {
+      //   return res.status(403).json({
+      //     success: false,
+      //     message: 'Not authorized to edit this tech news'
+      //   });
+      // }
 
       // Update allowed fields
       const allowedUpdates = [
-        'title', 'content', 'excerpt', 'category', 'tags', 'featuredImage',
+        'title', 'content', 'excerpt', 'category', 'subcategory','tags', 'featuredImage',
         'images', 'status', 'isFeatured', 'isBreaking', 'priority', 'source',
         'metaTitle', 'metaDescription'
       ];
@@ -239,8 +252,8 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
         }
       });
 
-      techNews.updatedBy = req.user.userId;
-
+      techNews.updatedBy = req.user._id;
+      techNews.publishedAt= updateData['status'] === 'published' ? new Date() : null,
       await techNews.save();
 
       const updatedTechNews = await TechNews.findById(id)
@@ -249,6 +262,7 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
 
       res.json({
         success: true,
+        statuscode:200,
         message: 'Tech news updated successfully',
         data: { techNews: updatedTechNews }
       });
@@ -264,7 +278,7 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
   // Delete tech news
   exports.deleteTechNews = async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.body;
 
       const techNews = await TechNews.findById(id);
       if (!techNews) {
@@ -275,12 +289,12 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
       }
 
       // Check if user can delete this tech news
-      if (techNews.author.toString() !== req.user.userId && !['ADMIN', 'SUPER_ADMIN'].includes(req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Not authorized to delete this tech news'
-        });
-      }
+      // if (techNews.author.toString() !== req.user._id && !['ADMIN', 'SUPER_ADMIN'].includes(req.user.role)) {
+      //   return res.status(403).json({
+      //     success: false,
+      //     message: 'Not authorized to delete this tech news'
+      //   });
+      // }
 
       // Delete associated comments
       await Comment.deleteMany({ techNews: id });

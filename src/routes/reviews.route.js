@@ -15,14 +15,15 @@ const {
 } = require('../controller/review.controller');
 
 // GET routes
+// Protected routes
+router.use(auth);
 router.route('/getAllReviews').post(getAllReviews);  // Changed from '/getAllReviews'
 router.route('/trending').get(getTrendingReviews);
 router.route('/featured').get(getFeaturedReviews);
 router.route('/stats').get(getReviewStats);
 router.route('/getReviewById').post(getReviewById);  // Changed from '/getReviewById'
 
-// Protected routes
-router.use(auth);
+
 // POST/PUT/DELETE routes
 router.route('/createReview').post(
   checkPermission('reviews', 'create'), 

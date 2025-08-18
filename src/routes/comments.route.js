@@ -17,11 +17,12 @@ const {
 // This applies to all routes below
 
 // Public routes (read-only)
+router.use(auth);  
 router.route('/').get(getComments);
 router.route('/stats').get(getCommentStats);
 router.route('/:id').get(getCommentById);
 router.route('/:id/replies').get(getCommentReplies);
-router.use(auth);  
+
 
 router.route('/').post(checkPermission('comments', 'create'), validateCreateComment, createComment);
 router.route('/:id').put(checkPermission('comments', 'update'), validateUpdateComment, updateComment);

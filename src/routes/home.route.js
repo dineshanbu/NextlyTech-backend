@@ -12,11 +12,12 @@ const {
 // This applies to all routes below
 
 // Public routes (read-only)
+router.use(auth); 
 router.route('/getLatestBannerPosts').get(getLatestBannerPosts);
 router.route('/getGroupPosts').get(getGroupPosts);
 router.route('/getGroupedPosts').get(getGroupedPosts);
 
-router.use(auth);  
+ 
 
 
 

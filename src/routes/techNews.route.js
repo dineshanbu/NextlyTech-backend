@@ -17,19 +17,19 @@ const {
 } = require('../controller/techNews.controller');
 
 
-
+// Apply auth middleware to all routes
+router.use(auth);
 // GET routes (read operations)
-router.route('/').get(getAllTechNews);  // Changed from '/getAllTechNews'
+router.route('/getAllTechNews').post(getAllTechNews);  // Changed from '/getAllTechNews'
 router.route('/trending').get(getTrendingTechNews);
 router.route('/featured').get(getFeaturedTechNews);
 router.route('/breaking').get(getBreakingNews);
 router.route('/stats').get(getTechNewsStats);
 router.route('/category/:categoryId').get(getTechNewsByCategory);  // Changed to use parameter
-router.route('/:id').get(getTechNewsById);  // Changed from '/getTechNewsById'
+router.route('/getTechNewsById').post(getTechNewsById);  // Changed from '/getTechNewsById'
 
 
-// Apply auth middleware to all routes
-router.use(auth);
+
 // POST/PUT/DELETE routes (write operations)
 router.route('/createTechNews').post(
   checkPermission('tech-news', 'create'),
@@ -37,13 +37,13 @@ router.route('/createTechNews').post(
   createTechNews
 );  // Changed from '/createTechNews'
 
-router.route('/:id').put(
+router.route('/updateTechNews').post(
   checkPermission('tech-news', 'update'),
   validateUpdateTechNews,
   updateTechNews
 );  // Changed from POST '/updateTechNews' to PUT '/:id'
 
-router.route('/:id').delete(
+router.route('/deleteTechNews').post(
   checkPermission('tech-news', 'delete'),
   deleteTechNews
 );  // Changed from POST '/deleteTechNews' to DELETE '/:id'

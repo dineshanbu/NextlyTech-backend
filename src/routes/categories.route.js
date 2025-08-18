@@ -18,6 +18,7 @@ const {
 } = require('../controller/category.controller');
 
   // This applies to all routes below
+router.use(auth);
 router.route('/getGroupedCategories').get(getGroupedCategories);
 router.route('/getFullMenuStructure').get(getFullMenuStructure);
 router.route('/getAllCategories').post(getAllCategories);
@@ -26,7 +27,7 @@ router.route('/stats').get(getCategoryStats);
 router.route('/getGroupEnums').get(getGroupEnums);
 router.route('/getCategoryWithSubcategories').get(getCategoryWithSubcategories);
 router.route('/getCategoryById').post(getCategoryById);  // Changed to use parameter
-router.use(auth);
+
 router.route('/createCategory').post(checkPermission('categories', 'create'), validateCreateCategory, createCategory);
 router.route('/updateCategory').post(checkPermission('categories', 'update'), validateUpdateCategory, updateCategory);
 router.route('/deleteCategory').post(checkPermission('categories', 'delete'), deleteCategory);

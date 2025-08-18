@@ -407,12 +407,8 @@ const validateUpdateTechNews = [
     .withMessage('Excerpt must not exceed 300 characters'),
   body('category')
     .optional()
-    .isIn([
-      'latest', 'launch-events', 'startups', 'ai-gadgets', 'ai-news',
-      'digital-india', 'policies', 'schemes', 'mobile-news', 'laptop-news',
-      'smartwatch-news', 'tablet-news', 'general'
-    ])
-    .withMessage('Invalid news category'),
+     .isMongoId()
+    .withMessage('Valid tech news ID is required'),
   body('status')
     .optional()
     .isIn(['draft', 'published', 'archived'])

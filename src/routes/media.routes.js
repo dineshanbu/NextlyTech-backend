@@ -1,5 +1,5 @@
 const express = require('express');
-// const { auth } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const multer = require('multer');
 const upload = require('../utils/multer');
 
@@ -13,6 +13,7 @@ const {
 
   // This applies to all routes below
 // router.use(auth);
+router.use(auth); 
 router.route('/upload').post(upload, uploadMedia);
 router.route('/getAllMedia').get(getAllMedia);
 router.route('/getMediaById').post(getMediaById);

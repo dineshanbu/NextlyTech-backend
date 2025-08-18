@@ -53,6 +53,109 @@ exports.generateFullAIReview = async (req, res) => {
   }
 };
 
+exports.generateFullTechNews = async (req, res) => {
+  try {
+    const { topic, categoryId, subcategoryId } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required field: topic"
+      });
+    }
+
+    const aiData = await generateNewsAI(topic);
+    if (!aiData || !aiData.title) {
+      return res.status(500).json({ success: false, message: "Failed to generate AI news content" });
+    }
+
+    const imageUrl = await generatePlaceholderImage(topic);
+
+    const newsData = {
+      title: aiData.title,
+      content: aiData.content,
+      excerpt: aiData.excerpt,
+      category: categoryId,
+      subcategory: subcategoryId || null,
+      tags: aiData.tags || [],
+      featuredImage: {
+        url: imageUrl,
+        alt: aiData.title
+      },
+      images: aiData.images || [],
+      status: "draft",
+      metaTitle: aiData.metaTitle,
+      metaDescription: aiData.metaDescription,
+      source: aiData.source || {}
+    };
+
+
+    res.status(200).json({
+      success: true,
+      message: "AI tech news generated successfully",
+      data: newsData
+    });
+
+  } catch (error) {
+    console.error("💥 AI Tech News Generation Error:", error?.response?.data || error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while generating AI tech news",
+      error: error?.message || "Unexpected error occurred"
+    });
+  }
+};
+
+async function generateNewsAI(topic) {
+  const prompt = `
+You are a professional tech journalist. Write a structured **news article** in JSON format.
+
+Topic: "${topic}"
+
+Return ONLY valid JSON:
+{
+  "title": "",
+  "excerpt": "",
+  "content": "",
+  "tags": [""],
+  "images": [{ "url": "", "alt": "" }],
+  "metaTitle": "",
+  "metaDescription": "",
+  "source": { "name": "AI Generated", "url": "" }
+}
+`;
+
+  try {
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.6
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    const message = response.data.choices[0].message.content;
+
+    const cleaned = message
+      .replace(/^```json\s*/i, "")
+      .replace(/^```/, "")
+      .replace(/```$/, "")
+      .trim();
+
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error("❌ Failed to generate AI news:", error?.response?.data || error);
+    return null;
+  }
+}
+
 async function generateReviewAI(productName) {
  const prompt = `
 You are an expert tech reviewer. Generate a detailed review in valid JSON format for the following product:
