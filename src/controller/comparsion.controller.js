@@ -7,29 +7,31 @@ const { getEnumValues,handleSortOrder,createSlug } = require('../utils/helpers')
 
 const getComparisons = async (req, res) => {
    try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const filter = {
-      status: req.query.status || 'published'
+    let filter = {
+      
     };
 
-    if (req.query.category) filter.category = req.query.category;
-    if (req.query.subcategory) filter.subcategory = req.query.subcategory;
-    if (req.query.comparisonType) filter.comparisonType = req.query.comparisonType;
-    if (req.query.isFeatured !== undefined) filter.isFeatured = req.query.isFeatured === 'true';
-    if (req.query.tags) filter.tags = { $in: req.query.tags.split(',') };
-    if (req.query.search) filter.$text = { $search: req.query.search };
+    if(req.body.status) filter.status= req.body.status
+
+    if (req.body.category) filter.category = req.body.category;
+    if (req.body.subcategory) filter.subcategory = req.body.subcategory;
+    if (req.body.comparisonType) filter.comparisonType = req.body.comparisonType;
+    if (req.body.isFeatured !== undefined) filter.isFeatured = req.body.isFeatured === 'true';
+    if (req.body.tags) filter.tags = { $in: req.body.tags.split(',') };
+    if (req.body.search) filter.$text = { $search: req.body.search };
 
     let sortOptions = { publishedAt: -1 };
-    if (req.query.sort === 'popular') sortOptions = { viewCount: -1 };
-    if (req.query.sort === 'priority') sortOptions = { priority: -1, publishedAt: -1 };
+    if (req.body.sort === 'popular') sortOptions = { viewCount: -1 };
+    if (req.body.sort === 'priority') sortOptions = { priority: -1, publishedAt: -1 };
 
-    const comparisons = await Comparison.find(filter)
+    const comparisons = await Comparison.find({})
       .populate('category', 'name slug')
       .populate('subcategory', 'name slug')
-      .populate('author', 'name avatar')
+      .populate('author', 'name firstName lastName')
       .populate({
         path: 'products',
         model: 'Review',
@@ -46,10 +48,11 @@ const getComparisons = async (req, res) => {
       .limit(limit)
       .select('-content'); // Exclude content for list view
 
-    const total = await Comparison.countDocuments(filter);
+    const total = await Comparison.countDocuments({});
 
     res.status(200).json({
       success: true,
+      statuscode:200,
       data: comparisons,
       pagination: {
         page,
@@ -81,7 +84,7 @@ const getComparisonById = async (req, res) => {
     const comparison = await Comparison.findOne(query)
       .populate('category', 'name slug description')
       .populate('subcategory', 'name slug description')
-      .populate('author', 'name email avatar bio')
+      .populate('author', 'firstName lastName email avatar')
       .populate('products.productId', 'title slug');
 
     if (!comparison) {
@@ -97,6 +100,7 @@ const getComparisonById = async (req, res) => {
     });
 
     res.status(200).json({
+      statuscode:200,
       success: true,
       data: comparison
     });
